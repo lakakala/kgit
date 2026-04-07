@@ -2,6 +2,15 @@ import { execa } from 'execa'
 import fs from 'node:fs'
 import path from 'node:path'
 
+async function run(args: string[]): Promise<void> {
+  console.log(`  $ ${args.join(' ')}`)
+  const result = await execa(args[0], args.slice(1), { all: true }).catch(err => {
+    if (err.all) process.stderr.write(err.all + '\n')
+    throw err
+  })
+  if (result.all) process.stdout.write(result.all + '\n')
+}
+
 async function localBranchExists(repoPath: string, branch: string): Promise<boolean> {
   const { stdout } = await execa('git', ['-C', repoPath, 'branch', '--list', branch], { stdio: 'pipe' })
   return stdout.trim().length > 0
@@ -9,7 +18,6 @@ async function localBranchExists(repoPath: string, branch: string): Promise<bool
 
 async function remoteBranchExists(repoPath: string, branch: string): Promise<string | null> {
   try {
-    // Query remote directly — more reliable than local cached refs
     const { stdout } = await execa(
       'git', ['-C', repoPath, 'ls-remote', '--heads', 'origin', branch],
       { stdio: 'pipe' }
@@ -30,34 +38,28 @@ export async function addWorktree(
   await fs.promises.mkdir(path.dirname(worktreePath), { recursive: true })
 
   if (await localBranchExists(repoPath, newBranch)) {
-    // Branch exists locally — use it directly
     console.log(`  Branch "${newBranch}" exists locally, using it directly.`)
-    await execa('git', ['-C', repoPath, 'worktree', 'add', worktreePath, newBranch], { stdio: 'inherit' })
+    await run(['git', '-C', repoPath, 'worktree', 'add', worktreePath, newBranch])
     return
   }
 
   const remoteBranch = await remoteBranchExists(repoPath, newBranch)
   if (remoteBranch) {
-    // Branch exists on remote — create a tracking local branch
     console.log(`  Branch "${newBranch}" found on remote (${remoteBranch}), creating tracking branch.`)
-    await execa('git', ['-C', repoPath, 'worktree', 'add', '--track', '-b', newBranch, worktreePath, remoteBranch], { stdio: 'inherit' })
+    await run(['git', '-C', repoPath, 'worktree', 'add', '--track', '-b', newBranch, worktreePath, remoteBranch])
     return
   }
 
-  // Branch does not exist — create from base branch
-  await execa('git', ['-C', repoPath, 'worktree', 'add', '-b', newBranch, worktreePath, baseBranch], { stdio: 'inherit' })
+  await run(['git', '-C', repoPath, 'worktree', 'add', '-b', newBranch, worktreePath, baseBranch])
 }
 
 export async function isBranchSyncedToRemote(worktreePath: string): Promise<boolean> {
   try {
-    // Check if there is an upstream tracking branch
     await execa('git', ['-C', worktreePath, 'rev-parse', '--abbrev-ref', '@{u}'], { stdio: 'pipe' })
   } catch {
-    // No upstream configured — treat as unsynced
     return false
   }
 
-  // Check for commits not yet pushed to upstream
   const { stdout } = await execa(
     'git', ['-C', worktreePath, 'rev-list', '--count', '@{u}..HEAD'],
     { stdio: 'pipe' }
@@ -69,9 +71,7 @@ export async function removeWorktree(
   repoPath: string,
   worktreePath: string
 ): Promise<void> {
-  await execa('git', ['-C', repoPath, 'worktree', 'remove', worktreePath, '--force'], {
-    stdio: 'inherit',
-  })
+  await run(['git', '-C', repoPath, 'worktree', 'remove', worktreePath, '--force'])
 }
 
 export async function isGitRepo(dirPath: string): Promise<boolean> {
