@@ -1,0 +1,25 @@
+{
+  "name": "kgit",
+  "version": "0.1.0",
+  "description": "Git worktree workspace manager",
+  "type": "module",
+  "bin": {
+    "kgit": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "commander": "^12.0.0",
+    "execa": "^9.0.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}
