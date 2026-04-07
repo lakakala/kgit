@@ -5,6 +5,7 @@ import { newCommand } from './commands/new.js'
 import { appendCommand } from './commands/append.js'
 import { removeCommand } from './commands/remove.js'
 import { listCommand } from './commands/list.js'
+import { editCommand } from './commands/edit.js'
 
 const require = createRequire(import.meta.url)
 const { version } = require('../package.json') as { version: string }
@@ -70,6 +71,14 @@ program
   .description('List all created workspaces and their projects')
   .action(async () => {
     await listCommand()
+  })
+
+program
+  .command('edit <workspace> <project>')
+  .description('Open a project worktree in an IDE or editor')
+  .option('--ide <name>', 'Editor to use: code, trae, cursor, nvim, vim, etc.')
+  .action(async (workspace: string, project: string, options: { ide?: string }) => {
+    await editCommand(workspace, project, options)
   })
 
 program

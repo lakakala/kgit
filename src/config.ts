@@ -13,6 +13,7 @@ const ProjectSchema = z.object({
 const ConfigSchema = z.object({
   workspace: z.string(),
   projects: z.array(ProjectSchema),
+  ide: z.string().optional(),
 })
 
 export type Project = z.infer<typeof ProjectSchema>
