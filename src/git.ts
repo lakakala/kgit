@@ -44,6 +44,23 @@ export async function addWorktree(
   await execa('git', ['-C', repoPath, 'worktree', 'add', '-b', newBranch, worktreePath, baseBranch], { stdio: 'inherit' })
 }
 
+export async function isBranchSyncedToRemote(worktreePath: string): Promise<boolean> {
+  try {
+    // Check if there is an upstream tracking branch
+    await execa('git', ['-C', worktreePath, 'rev-parse', '--abbrev-ref', '@{u}'], { stdio: 'pipe' })
+  } catch {
+    // No upstream configured — treat as unsynced
+    return false
+  }
+
+  // Check for commits not yet pushed to upstream
+  const { stdout } = await execa(
+    'git', ['-C', worktreePath, 'rev-list', '--count', '@{u}..HEAD'],
+    { stdio: 'pipe' }
+  )
+  return parseInt(stdout.trim(), 10) === 0
+}
+
 export async function removeWorktree(
   repoPath: string,
   worktreePath: string

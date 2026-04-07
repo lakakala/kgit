@@ -1,9 +1,13 @@
 #!/usr/bin/env node
 import { Command } from 'commander'
+import { createRequire } from 'node:module'
 import { newCommand } from './commands/new.js'
 import { appendCommand } from './commands/append.js'
 import { removeCommand } from './commands/remove.js'
 import { listCommand } from './commands/list.js'
+
+const require = createRequire(import.meta.url)
+const { version } = require('../package.json') as { version: string }
 
 interface ProjectEntry {
   name: string
@@ -25,7 +29,7 @@ const program = new Command()
 program
   .name('kgit')
   .description('Git worktree workspace manager')
-  .version('0.1.0')
+  .version(version)
 
 program
   .command('new <workspace>')
@@ -66,6 +70,13 @@ program
   .description('List all created workspaces and their projects')
   .action(async () => {
     await listCommand()
+  })
+
+program
+  .command('version')
+  .description('Print the current version')
+  .action(() => {
+    console.log(`kgit v${version}`)
   })
 
 program.parseAsync(process.argv, { from: 'node' }).catch((err: Error) => {

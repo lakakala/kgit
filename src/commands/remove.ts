@@ -1,10 +1,39 @@
 import path from 'node:path'
 import fs from 'node:fs'
+import readline from 'node:readline'
 import { loadConfig, findProject } from '../config.js'
-import { removeWorktree } from '../git.js'
+import { removeWorktree, isBranchSyncedToRemote } from '../git.js'
 
 interface ProjectEntry {
   name: string
+}
+
+function confirm(question: string): Promise<boolean> {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
+  return new Promise(resolve => {
+    rl.question(`${question} (y/N) `, answer => {
+      rl.close()
+      resolve(answer.trim().toLowerCase() === 'y')
+    })
+  })
+}
+
+async function checkAndRemove(
+  repoPath: string,
+  worktreePath: string,
+  projectName: string
+): Promise<void> {
+  const synced = await isBranchSyncedToRemote(worktreePath)
+  if (!synced) {
+    console.warn(`  Warning: "${projectName}" has unpushed commits or no remote tracking branch.`)
+    const ok = await confirm(`  Remove worktree "${projectName}" anyway?`)
+    if (!ok) {
+      console.log(`  Skipped "${projectName}".`)
+      return
+    }
+  }
+  console.log(`Removing worktree "${projectName}" from ${repoPath}`)
+  await removeWorktree(repoPath, worktreePath)
 }
 
 export async function removeCommand(
@@ -19,18 +48,20 @@ export async function removeCommand(
   }
 
   if (projectEntries.length === 0) {
-    // Remove entire workspace: prune all worktrees then delete folder
     const entries = fs.readdirSync(targetDir)
     for (const entry of entries) {
       const worktreePath = path.join(targetDir, entry)
       const project = config.projects.find(p => p.name === entry)
       if (project && fs.statSync(worktreePath).isDirectory()) {
-        console.log(`Removing worktree "${entry}" from ${project.path}`)
-        await removeWorktree(project.path, worktreePath)
+        await checkAndRemove(project.path, worktreePath, entry)
       }
     }
-    fs.rmSync(targetDir, { recursive: true, force: true })
-    console.log(`Workspace "${workspaceName}" removed.`)
+    if (fs.readdirSync(targetDir).length === 0) {
+      fs.rmSync(targetDir, { recursive: true, force: true })
+      console.log(`Workspace "${workspaceName}" removed.`)
+    } else {
+      console.log(`Workspace "${workspaceName}" partially removed (some projects were skipped).`)
+    }
   } else {
     for (const entry of projectEntries) {
       const project = findProject(config, entry.name)
@@ -41,11 +72,9 @@ export async function removeCommand(
         continue
       }
 
-      console.log(`Removing worktree "${project.name}" from ${project.path}`)
-      await removeWorktree(project.path, worktreePath)
+      await checkAndRemove(project.path, worktreePath, project.name)
     }
 
-    // Remove workspace dir if now empty
     if (fs.readdirSync(targetDir).length === 0) {
       fs.rmdirSync(targetDir)
       console.log(`Workspace directory is now empty and has been removed.`)
