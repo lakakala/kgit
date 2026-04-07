@@ -1,10 +1,16 @@
 {
-  "name": "kgit",
+  "name": "@lakakala/kgit",
   "version": "0.1.0",
   "description": "Git worktree workspace manager",
   "type": "module",
   "bin": {
     "kgit": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsc",
