@@ -10,10 +10,12 @@ interface ProjectEntry {
 
 export async function newCommand(
   workspaceName: string,
-  projectEntries: ProjectEntry[]
+  projectEntries: ProjectEntry[],
+  newBranch?: string
 ): Promise<void> {
   const config = loadConfig()
   const targetDir = path.join(config.workspace, workspaceName)
+  const branchName = newBranch ?? workspaceName
 
   if (fs.existsSync(targetDir)) {
     throw new Error(`Workspace directory already exists: ${targetDir}`)
@@ -30,8 +32,8 @@ export async function newCommand(
     }
 
     const worktreePath = path.join(targetDir, project.name)
-    console.log(`Adding worktree for "${project.name}" (branch: ${entry.branch}) -> ${worktreePath}`)
-    await addWorktree(project.path, worktreePath, entry.branch)
+    console.log(`Adding worktree for "${project.name}" (new branch: ${branchName}, base: ${entry.branch}) -> ${worktreePath}`)
+    await addWorktree(project.path, worktreePath, branchName, entry.branch)
   }
 
   console.log(`\nWorkspace "${workspaceName}" created successfully at ${targetDir}`)

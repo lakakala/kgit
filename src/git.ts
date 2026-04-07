@@ -5,10 +5,20 @@ import path from 'node:path'
 export async function addWorktree(
   repoPath: string,
   worktreePath: string,
-  branch: string
+  newBranch: string,
+  baseBranch: string
 ): Promise<void> {
   await fs.promises.mkdir(path.dirname(worktreePath), { recursive: true })
-  await execa('git', ['-C', repoPath, 'worktree', 'add', worktreePath, branch], {
+  await execa('git', ['-C', repoPath, 'worktree', 'add', '-b', newBranch, worktreePath, baseBranch], {
+    stdio: 'inherit',
+  })
+}
+
+export async function removeWorktree(
+  repoPath: string,
+  worktreePath: string
+): Promise<void> {
+  await execa('git', ['-C', repoPath, 'worktree', 'remove', worktreePath, '--force'], {
     stdio: 'inherit',
   })
 }
