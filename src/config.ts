@@ -3,7 +3,7 @@ import path from 'node:path'
 import os from 'node:os'
 import { z } from 'zod'
 
-const CONFIG_PATH = path.join(os.homedir(), '.config', '.kget', 'config.json')
+const CONFIG_PATH = path.join(os.homedir(), '.config', 'kgit', 'config.json')
 
 const ProjectSchema = z.object({
   name: z.string(),
