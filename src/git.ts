@@ -9,9 +9,13 @@ async function localBranchExists(repoPath: string, branch: string): Promise<bool
 
 async function remoteBranchExists(repoPath: string, branch: string): Promise<string | null> {
   try {
-    const { stdout } = await execa('git', ['-C', repoPath, 'branch', '-r', '--list', `*/${branch}`], { stdio: 'pipe' })
-    const match = stdout.trim().split('\n').find(l => l.trim().length > 0)
-    return match ? match.trim() : null
+    // Query remote directly — more reliable than local cached refs
+    const { stdout } = await execa(
+      'git', ['-C', repoPath, 'ls-remote', '--heads', 'origin', branch],
+      { stdio: 'pipe' }
+    )
+    if (stdout.trim().length === 0) return null
+    return `origin/${branch}`
   } catch {
     return null
   }
