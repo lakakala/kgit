@@ -34,6 +34,7 @@ function expandConfig(config: Config): Config {
       name: p.name,
       path: expandEnvVars(p.path),
     })),
+    ide: config.ide,
   }
 }
 
