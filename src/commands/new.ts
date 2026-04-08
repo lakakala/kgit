@@ -1,6 +1,6 @@
 import path from 'node:path'
-import fs from 'node:fs'
 import { loadConfig, findProject } from '../config.js'
+import { createRunner } from '../runner.js'
 import { addWorktree, isGitRepo } from '../git.js'
 
 interface ProjectEntry {
@@ -14,26 +14,27 @@ export async function newCommand(
   newBranch?: string
 ): Promise<void> {
   const config = loadConfig()
+  const r = createRunner(config.machine)
   const targetDir = path.join(config.workspace, workspaceName)
   const branchName = newBranch ?? workspaceName
 
-  if (fs.existsSync(targetDir)) {
+  if (await r.exists(targetDir)) {
     throw new Error(`Workspace directory already exists: ${targetDir}`)
   }
 
-  await fs.promises.mkdir(targetDir, { recursive: true })
+  await r.mkdir(targetDir)
   console.log(`Created workspace directory: ${targetDir}`)
 
   for (const entry of projectEntries) {
     const project = findProject(config, entry.name)
 
-    if (!(await isGitRepo(project.path))) {
+    if (!(await isGitRepo(r, project.path))) {
       throw new Error(`Not a git repository: ${project.path}`)
     }
 
     const worktreePath = path.join(targetDir, project.name)
     console.log(`Adding worktree for "${project.name}" (new branch: ${branchName}, base: ${entry.branch}) -> ${worktreePath}`)
-    await addWorktree(project.path, worktreePath, branchName, entry.branch)
+    await addWorktree(r, project.path, worktreePath, branchName, entry.branch)
   }
 
   console.log(`\nWorkspace "${workspaceName}" created successfully at ${targetDir}`)

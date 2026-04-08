@@ -14,6 +14,7 @@ const ConfigSchema = z.object({
   workspace: z.string(),
   projects: z.array(ProjectSchema),
   ide: z.string().optional(),
+  machine: z.string().optional(),
 })
 
 export type Project = z.infer<typeof ProjectSchema>
@@ -35,6 +36,7 @@ function expandConfig(config: Config): Config {
       path: expandEnvVars(p.path),
     })),
     ide: config.ide,
+    machine: config.machine,
   }
 }
 

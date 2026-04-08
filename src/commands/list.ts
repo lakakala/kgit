@@ -1,27 +1,23 @@
 import path from 'node:path'
-import fs from 'node:fs'
 import { loadConfig } from '../config.js'
-import { execa } from 'execa'
-
-async function getCurrentBranch(worktreePath: string): Promise<string> {
-  try {
-    const { stdout } = await execa('git', ['-C', worktreePath, 'branch', '--show-current'], { stdio: 'pipe' })
-    return stdout.trim() || 'detached HEAD'
-  } catch {
-    return 'unknown'
-  }
-}
+import { createRunner } from '../runner.js'
 
 export async function listCommand(): Promise<void> {
   const config = loadConfig()
+  const r = createRunner(config.machine)
 
-  if (!fs.existsSync(config.workspace)) {
+  if (!(await r.exists(config.workspace))) {
     console.log('No workspaces found (workspace directory does not exist).')
     return
   }
 
-  const entries = fs.readdirSync(config.workspace, { withFileTypes: true })
-  const workspaces = entries.filter(e => e.isDirectory())
+  const entries = await r.readdir(config.workspace)
+  const workspaces: string[] = []
+  for (const entry of entries) {
+    if (await r.isDirectory(path.join(config.workspace, entry))) {
+      workspaces.push(entry)
+    }
+  }
 
   if (workspaces.length === 0) {
     console.log('No workspaces found.')
@@ -29,14 +25,20 @@ export async function listCommand(): Promise<void> {
   }
 
   for (const ws of workspaces) {
-    console.log(`${ws.name}`)
-    const wsPath = path.join(config.workspace, ws.name)
-    const projects = fs.readdirSync(wsPath, { withFileTypes: true }).filter(e => e.isDirectory())
+    console.log(`${ws}`)
+    const wsPath = path.join(config.workspace, ws)
+    const children = await r.readdir(wsPath)
 
-    for (const proj of projects) {
-      const projPath = path.join(wsPath, proj.name)
-      const branch = await getCurrentBranch(projPath)
-      console.log(`  └─ ${proj.name}  (${branch})`)
+    for (const proj of children) {
+      const projPath = path.join(wsPath, proj)
+      if (!(await r.isDirectory(projPath))) continue
+
+      let branch = 'unknown'
+      try {
+        const { stdout } = await r.exec(['git', '-C', projPath, 'branch', '--show-current'])
+        branch = stdout.trim() || 'detached HEAD'
+      } catch { /* ignore */ }
+      console.log(`  └─ ${proj}  (${branch})`)
     }
   }
 }
