@@ -6,6 +6,7 @@ import { createRunner } from '../runner.js'
 const IDE_COMMANDS: Record<string, string> = {
   code: 'code',
   trae: 'trae',
+  'trae-cn': 'trae-cn',
   cursor: 'cursor',
   nvim: 'nvim',
   vim: 'vim',
@@ -18,7 +19,7 @@ const IDE_COMMANDS: Record<string, string> = {
 const TERMINAL_IDES = new Set(['nvim', 'vim', 'vi', 'nano'])
 
 // IDEs that support --remote ssh-remote+host
-const SSH_REMOTE_IDES = new Set(['code', 'cursor'])
+const SSH_REMOTE_IDES = new Set(['code', 'cursor', 'trae', 'trae-cn'])
 
 async function detectDefaultIde(): Promise<string | null> {
   for (const cmd of ['code', 'trae', 'cursor', 'nvim', 'vim']) {
